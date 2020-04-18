@@ -17,8 +17,9 @@ class AuthentificateLocal extends StatelessWidget {
   Widget build(BuildContext context) {
 
     DataManager manager = context.fetch<DataManager>();
-
-
+    manager.checkBiometrics();
+    manager.getAvailableBiometrics();
+    
     return Scaffold(
       backgroundColor: Color(0xff2d9de5),
       body: Stack(
@@ -48,7 +49,8 @@ class AuthentificateLocal extends StatelessWidget {
                       onWaiting: (context) => Container(child: Column(
                         children: <Widget>[
                           SizedBox(height:33),
-                          Container( child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text( "Utiliser le bouton du bas pour marquer votre emprunte " ,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                          Container( child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text(
+                             data.desc,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
                           SizedBox(height:53),
                           Observer<bool>(
                               stream: manager.authenticated,

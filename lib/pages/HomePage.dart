@@ -6,6 +6,7 @@ import 'package:mypresence/helpers/Style/style.dart';
 import 'package:mypresence/pages/AuthLocalPage.dart';
 import 'package:mypresence/widgets/pageRoute.dart';
 import 'package:mypresence/pages/ProfilePage.dart';
+import 'package:mypresence/widgets/showDialogger.dart';
 import 'package:sprinkle/Observer.dart';
 import 'package:sprinkle/SprinkleExtension.dart';
 
@@ -33,7 +34,7 @@ class HomePage extends StatelessWidget {
             Expanded(child: _buildHeader(),),
             Expanded(
                 child: Row(
-                  children: dataCard.map((elementCard) => Flexible(fit: FlexFit.loose,child: _buildCard(context, data: elementCard)),).toList(),
+                  children: dataCard.map((elementCard) => Flexible(fit: FlexFit.loose,child: _buildCard(context, data: elementCard, manager: manager)),).toList(),
                 )),
           ],
         ),
@@ -72,25 +73,54 @@ Widget _buildHeader() {
   );
 }
 
-Widget _buildCard(
-    context, {
-      CardModel data,
-    }) {
-  return Center(
-    child: GestureDetector(
-        onTap: () => Navigator.push(
-            context,WhitePageRoute(enterPage: AuthentificateLocal(data: data,))),
-        child: Hero(
-          tag: data.tagHero,
-          child: Container(
-            width: MediaQuery.of(context).size.width / 2.5,
-            height: MediaQuery.of(context).size.height / 4,
-            child: Scenery(
-              data: data,
+Widget _buildCard(context, { CardModel data, DataManager manager}) {
+  manager.checkBiometrics();
+  return Observer<bool>(
+    stream: manager.checkedBiometric,
+    onWaiting: (context)=> GetAvailableBiometrics(data: data,),
+    onSuccess: (context, bool isAvailable) => GetAvailableBiometrics(data: data,),
+    onError: (context, bool notAvailable)=> Center(
+      child: GestureDetector(
+          onTap: () => dialogShowAvailableBiometric(context),
+          child: Hero(
+            tag: data.tagHero,
+            child: Container(
+              width: MediaQuery.of(context).size.width / 2.5,
+              height: MediaQuery.of(context).size.height / 4,
+              child: Scenery(
+                data: data,
+              ),
             ),
-          ),
-        )),
+          )),
+    )
   );
+}
+
+class GetAvailableBiometrics extends StatelessWidget {
+  const GetAvailableBiometrics({
+    Key key,this.data
+  }) : super(key: key);
+
+  final CardModel data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: GestureDetector(
+          onTap: () => Navigator.push(
+              context,WhitePageRoute(enterPage: AuthentificateLocal(data: data,))),
+          child: Hero(
+            tag: data.tagHero,
+            child: Container(
+              width: MediaQuery.of(context).size.width / 2.5,
+              height: MediaQuery.of(context).size.height / 4,
+              child: Scenery(
+                data: data,
+              ),
+            ),
+          )),
+    );
+  }
 }
 
 Widget _buildAppBar(BuildContext ctx) {

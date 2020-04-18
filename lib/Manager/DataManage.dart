@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:mypresence/Exceptions/InvalidQrCodeException.dart';
 import 'package:mypresence/Exceptions/NoNetworkException.dart';
 import 'package:mypresence/Models/UserModel.dart';
@@ -18,44 +20,89 @@ class DataManager implements Manager {
   static const KEY_USER = 'KEY_USER';
 
 
+
   BehaviorSubject<User> _userr = BehaviorSubject<User>();
   PublishSubject<String> _message = PublishSubject<String>();
+
   PublishSubject<bool> _authenticated = PublishSubject<bool>();
+  BehaviorSubject<bool> _canCheckBiometrics = BehaviorSubject<bool>();
+  BehaviorSubject<List<BiometricType>> _availableBiometrics = BehaviorSubject<List<BiometricType>>();
 
   User _user;
   User get user => _user;
+  final LocalAuthentication auth = LocalAuthentication();
+
 
 
   Stream<User> get userr => _userr.stream;
   Stream<String> get message => _message.stream;
-  Stream<bool> get authenticated => _authenticated.stream;
 
+  Stream<bool> get authenticated => _authenticated.stream;
+  Stream<bool> get checkedBiometric => _canCheckBiometrics.stream;
+  Stream<List<BiometricType>> get availableBiometric => _availableBiometrics.stream;
+
+
+  Future<void> checkBiometrics() async {
+      bool canCheckBiometrics;
+      try {
+        canCheckBiometrics = await auth.canCheckBiometrics;
+      } on PlatformException catch (e) {
+        print(e);
+        throw e;
+      }
+      (canCheckBiometrics)? _canCheckBiometrics.add(true) : _canCheckBiometrics.addError(false)  ;
+    }
+
+  Future<void> getAvailableBiometrics() async {
+    List<BiometricType> availableBiometrics;
+    try {
+      availableBiometrics = await auth.getAvailableBiometrics();
+    } on PlatformException catch (e) {
+      print(e);
+    }
+    (availableBiometrics.isEmpty) ? print("List valid biometrics vide") :_availableBiometrics.add(availableBiometrics);
+    
+    if(Platform.isIOS) {
+      if (availableBiometrics.contains(BiometricType.face)) {
+        print("Face iD ");
+          // Face ID.
+      } else if (availableBiometrics.contains(BiometricType.fingerprint)) {
+        print("Touch ID ");
+          // Touch ID.
+      }
+    }else if(Platform.isAndroid){
+      if (availableBiometrics.contains(BiometricType.face)) {
+          print("Face iD ");
+            // Face ID.
+        } else if (availableBiometrics.contains(BiometricType.fingerprint)) {
+          print("Touch ID ");
+            // Touch ID.
+        }
+    }
+  }
 
   Future<void> fingerauthenticate() async {
-    final LocalAuthentication auth = LocalAuthentication();
-    bool auths = false;
-
+    bool authenticate = false;
     try {
 
-      auths = await auth.authenticateWithBiometrics(
+      authenticate = await auth.authenticateWithBiometrics(
           localizedReason:
           'scanner votre emprunte digital pour vous authentifier',
           useErrorDialogs: true,
           stickyAuth: true);
 
-      if(auths){
+    } on PlatformException catch (e) {
+      _authenticated.addError(false);
+      _message.addError("$e");
+    }
+
+    if(authenticate){
         _authenticated.add(true);
         _message.add("super nous avons recuperer votre emprunte vous pouvez scaner");
 
-      }else{
+    }else{
         _authenticated.addError(false);
         _message.addError("tu utilise quel doigt même, ressayer svp ...");
-      }
-
-    } on PlatformException catch (e) {
-
-      _authenticated.addError(false);
-      _message.addError("$e");
     }
   }
 
@@ -169,5 +216,7 @@ class DataManager implements Manager {
   void dispose() {
     _authenticated.close();
     _userr.close();
+    _canCheckBiometrics.close();
+    _availableBiometrics.close();
   }
 }

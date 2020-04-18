@@ -31,7 +31,6 @@ class MyApp extends StatelessWidget {
           AuthentificateLocal.routeName : (BuildContext context)=> AuthentificateLocal(),
           ProfilePage.routeName : (BuildContext context)=> ProfilePage(),
           LoginPage.routeName : (BuildContext context)=> LoginPage(),
-
         },
       ),
     );

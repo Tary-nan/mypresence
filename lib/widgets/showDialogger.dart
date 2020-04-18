@@ -23,3 +23,24 @@ dialogShow(BuildContext context){
     )
   );
 }
+
+dialogShowAvailableBiometric(BuildContext context){
+  return showDialog(
+    context: context,
+    builder: (_)=>(
+      Platform.isIOS)        
+      ?
+      CupertinoAlertDialog(
+          title: Text("L'autentification de Type Touche ID et Face ID n'est pas disponible sur ce telephone", style: TextStyle(fontSize:13),),
+          actions: <Widget>[
+            FlatButton(onPressed:()=>Navigator.pop(context), child: Text("retour ",style: TextStyle(color: Colors.blue)))
+          ],
+    ):
+    AlertDialog(
+      title: Text("L'autentification de Type Touche ID et Face ID n'est pas disponible sur ce telephone", style: TextStyle(fontSize:13)),
+      actions: <Widget>[         
+        FlatButton(onPressed:()=>Navigator.pop(context), child: Text("retour",style: TextStyle(color: Colors.blue)))
+      ],
+    )
+  );
+}
