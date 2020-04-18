@@ -82,6 +82,8 @@ class DataManager implements Manager {
   }
 
   Future<void> fingerauthenticate() async {
+    checkBiometrics();
+    getAvailableBiometrics();
     bool authenticate = false;
     try {
 

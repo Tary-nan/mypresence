@@ -17,9 +17,7 @@ class AuthentificateLocal extends StatelessWidget {
   Widget build(BuildContext context) {
 
     DataManager manager = context.fetch<DataManager>();
-    manager.checkBiometrics();
-    manager.getAvailableBiometrics();
-    
+
     return Scaffold(
       backgroundColor: Color(0xff2d9de5),
       body: Stack(
