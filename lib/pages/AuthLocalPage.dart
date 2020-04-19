@@ -1,22 +1,113 @@
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:mypresence/Manager/DataManage.dart';
 import 'package:mypresence/Models/dataRessource.dart';
 import 'package:mypresence/widgets/ButtonScanOrAuth.dart';
 import 'package:sprinkle/Observer.dart';
 import 'package:sprinkle/SprinkleExtension.dart';
+import 'package:flutter/services.dart';
 
 
+enum AuthState {
+  SUCCESS, 
+  FAILURE, 
+  NONE
+}
 
-class AuthentificateLocal extends StatelessWidget {
+class AuthentificateLocal extends StatefulWidget {
 
   static const routeName = "/auth";
   final CardModel data;
   AuthentificateLocal({this.data});
 
   @override
+  _AuthentificateLocalState createState() => _AuthentificateLocalState();
+}
+
+class _AuthentificateLocalState extends State<AuthentificateLocal> {
+
+  final LocalAuthentication auth = LocalAuthentication();
+  AuthState result = AuthState.NONE;
+
+  bool _canCheckBiometrics;
+  List<BiometricType> _availableBiometrics;
+  String _authorized = 'Not Authorized';
+  bool _isAuthenticating = false;
+
+  Future<void> _checkBiometrics() async {
+    bool canCheckBiometrics;
+    try {
+      canCheckBiometrics = await auth.canCheckBiometrics;
+    } on PlatformException catch (e) {
+      print(e);
+    }
+    if (!mounted) return;
+
+    setState(() {
+      _canCheckBiometrics = canCheckBiometrics;
+    });
+  }
+
+  Future<void> _getAvailableBiometrics() async {
+    List<BiometricType> availableBiometrics;
+    try {
+      availableBiometrics = await auth.getAvailableBiometrics();
+    } on PlatformException catch (e) {
+      print(e);
+    }
+    if (!mounted) return;
+
+    setState(() {
+      _availableBiometrics = availableBiometrics;
+    });
+  }
+
+  Future<void> _authenticate() async {
+    _checkBiometrics();
+    _getAvailableBiometrics();
+    bool authenticated = false;
+    try {
+      setState(() {
+        _isAuthenticating = true;
+        _authorized = 'Authenticating';
+      });
+      authenticated = await auth.authenticateWithBiometrics(
+          localizedReason: 'Scan your fingerprint to authenticate',
+          useErrorDialogs: true,
+          stickyAuth: true);
+      setState(() {
+        if(authenticated){
+          result = AuthState.SUCCESS;
+        }else{
+          result = AuthState.FAILURE;
+        }
+        _isAuthenticating = authenticated;
+        _authorized = 'Authenticating';
+      });
+    } on PlatformException catch (e) {
+      setState(() {
+        result = AuthState.FAILURE;
+      });
+      print(e);
+    }
+    if (!mounted) return;
+
+    final String message = authenticated ? 'Authorized' : 'Not Authorized';
+    setState(() {
+      _authorized = message;
+    });
+  }
+
+  void _cancelAuthentication() {
+    auth.stopAuthentication();
+  }
+    
+  @override
   Widget build(BuildContext context) {
 
     DataManager manager = context.fetch<DataManager>();
+
+    print(_isAuthenticating);
 
     return Scaffold(
       backgroundColor: Color(0xff2d9de5),
@@ -26,13 +117,13 @@ class AuthentificateLocal extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: <Widget>[
               Hero(
-                tag: data.tagHero,
+                tag: widget.data.tagHero,
                 flightShuttleBuilder: _buildFlightWidget,
                 child: Container(
                   height: MediaQuery.of(context).size.height * .45,
                   width: double.infinity,
                   child: Scenery(
-                    data: data,
+                    data: widget.data,
                     animationValue: 1,
                   ),
                 ),
@@ -41,6 +132,7 @@ class AuthentificateLocal extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: <Widget>[
+                    /*
                     Observer<String>(
                       stream: manager.message,
                       onSuccess: (context, String data) => _resultScan(context, manager: manager, status: "Success", message: data, icon: Icons.access_alarm, color: Colors.green.shade600),
@@ -48,13 +140,13 @@ class AuthentificateLocal extends StatelessWidget {
                         children: <Widget>[
                           SizedBox(height:33),
                           Container( child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text(
-                             data.desc,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                             widget.data.desc,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
                           SizedBox(height:53),
                           Observer<bool>(
                               stream: manager.authenticated,
                               onWaiting: (context)=> InkWell(
                                 onTap: ()=> manager.fingerauthenticate(),
-                                child: ButtonScanOrAuth(titre: data.titre, color: Color(0xff2d9de5), border: Colors.white60,),
+                                child: ButtonScanOrAuth(titre: widget.data.titre, color: Color(0xff2d9de5), border: Colors.white60,),
                               ),
                               onError: (context, error)=> InkWell(
                                 onTap: ()=> manager.fingerauthenticate(),
@@ -71,6 +163,26 @@ class AuthentificateLocal extends StatelessWidget {
                       )), 
                       onError: (context, String error) => _resultScan(context, manager: manager, status: "Error", message: error, icon: Icons.access_alarm, color: Colors.red.shade600),
                     ),
+                    */
+
+                    Container(child: Column(
+                        children: <Widget>[
+                           SizedBox(height:33),
+                          (result == AuthState.NONE) ? 
+                          Container( child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text(
+                             widget.data.desc,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))) 
+                             :
+                          ( result == AuthState.SUCCESS )? _resultScanStateful(context, manager: manager, status: "Success", message: "super nous avons recuperer votre emprunte ", icon: Icons.check_circle_outline, color: Colors.green.shade300) 
+                          :
+                          _resultScanStateful(context, manager: manager, status: "Error", message: "authentifificated fail", icon: Icons.close, color: Colors.red.shade300),
+                          
+                           SizedBox(height:25),
+                          ( result == AuthState.SUCCESS )? Container():InkWell(
+                                onTap: _isAuthenticating ? _cancelAuthentication : _authenticate,
+                                child: ButtonScanOrAuth(titre: widget.data.titre, color: Color(0xff2d9de5), border: Colors.white60,),
+                              ),
+                        ],
+                      )),
 
                   ],
                 ),
@@ -86,6 +198,39 @@ class AuthentificateLocal extends StatelessWidget {
         ],
       ),
     );
+  }
+
+    Widget _resultScanStateful(BuildContext context, { DataManager manager, String status, String message, IconData icon, Color color}){
+
+    return Container(
+
+        child: Column(
+          children: <Widget>[
+
+                Container(
+                  margin: EdgeInsets.all(20),
+                  height: MediaQuery.of(context).size.height/3.5,
+                  width: MediaQuery.of(context).size.width / 1.3,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      color: Colors.white70.withOpacity(.1),
+                    ),
+                  
+                  child: Column(
+                    children: <Widget>[
+                        Expanded(child: Container(alignment: Alignment.center, child: Text( status ,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                        Expanded(child: Container(alignment: Alignment.center, child: Icon(icon, size: 52, color: color,))),
+                        Expanded(flex:2,child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text( message ,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                    ]
+                  ),
+                ),
+                (result == AuthState.SUCCESS)? InkWell(
+                      onTap: ()=> manager.scanQR(),
+                      child: ButtonScanOrAuth(titre: "SCANER", color: Colors.green.shade400, border: Colors.white60,),
+                    ): Container(),
+
+          ],
+          ));
   }
 
   Widget _resultScan(BuildContext context, { DataManager manager, String status, String message, IconData icon, Color color}){
@@ -118,7 +263,7 @@ class AuthentificateLocal extends StatelessWidget {
                   stream: manager.authenticated,
                   onWaiting: (context)=> InkWell(
                     onTap: ()=> manager.fingerauthenticate(),
-                    child: ButtonScanOrAuth(titre: data.titre, color: Color(0xff2d9de5), border: Colors.white60,),
+                    child: ButtonScanOrAuth(titre: widget.data.titre, color: Color(0xff2d9de5), border: Colors.white60,),
                   ),
                   onError: (context, error)=> InkWell(
                     onTap: ()=> manager.fingerauthenticate(),
@@ -147,7 +292,7 @@ class AuthentificateLocal extends StatelessWidget {
         return DefaultTextStyle(
           style: DefaultTextStyle.of(toHeroContext).style,
           child: Scenery(
-            data: data,
+            data: widget.data,
             animationValue: heroAnimation.value,
           ),
         );

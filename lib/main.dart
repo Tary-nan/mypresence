@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         routes: {
-          '/': (BuildContext context) => SpashScreen(),
+          '/': (BuildContext context) => HomePage(),
           HomePage.routeName : (BuildContext context)=> HomePage(),
           AuthentificateLocal.routeName : (BuildContext context)=> AuthentificateLocal(),
           ProfilePage.routeName : (BuildContext context)=> ProfilePage(),
