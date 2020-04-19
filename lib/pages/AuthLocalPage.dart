@@ -67,6 +67,7 @@ class _AuthentificateLocalState extends State<AuthentificateLocal> {
     _getAvailableBiometrics();
     bool authenticated = false;
     try {
+      
       setState(() {
         _isAuthenticating = true;
         _authorized = 'Authenticating';
@@ -106,9 +107,7 @@ class _AuthentificateLocalState extends State<AuthentificateLocal> {
   Widget build(BuildContext context) {
 
     DataManager manager = context.fetch<DataManager>();
-
-    print(_isAuthenticating);
-
+    
     return Scaffold(
       backgroundColor: Color(0xff2d9de5),
       body: Stack(
@@ -202,12 +201,8 @@ class _AuthentificateLocalState extends State<AuthentificateLocal> {
 
     Widget _resultScanStateful(BuildContext context, { DataManager manager, String status, String message, IconData icon, Color color}){
 
-    return Container(
-
-        child: Column(
-          children: <Widget>[
-
-                Container(
+    return Observer(
+      onError: (context, error)=> Container(
                   margin: EdgeInsets.all(20),
                   height: MediaQuery.of(context).size.height/3.5,
                   width: MediaQuery.of(context).size.width / 1.3,
@@ -218,19 +213,59 @@ class _AuthentificateLocalState extends State<AuthentificateLocal> {
                   
                   child: Column(
                     children: <Widget>[
-                        Expanded(child: Container(alignment: Alignment.center, child: Text( status ,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
-                        Expanded(child: Container(alignment: Alignment.center, child: Icon(icon, size: 52, color: color,))),
-                        Expanded(flex:2,child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text( message ,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                        Expanded(child: Container(alignment: Alignment.center, child: Text( "error" ,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                        Expanded(child: Container(alignment: Alignment.center, child: Icon(icon, size: 52, color: Colors.red.shade300,))),
+                        Expanded(flex:2,child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text( error,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+
                     ]
                   ),
                 ),
-                (result == AuthState.SUCCESS)? InkWell(
-                      onTap: ()=> manager.scanQR(),
-                      child: ButtonScanOrAuth(titre: "SCANER", color: Colors.green.shade400, border: Colors.white60,),
-                    ): Container(),
+      onSuccess: (context, data)=> Container(
+                  margin: EdgeInsets.all(20),
+                  height: MediaQuery.of(context).size.height/3.5,
+                  width: MediaQuery.of(context).size.width / 1.3,
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      color: Colors.white70.withOpacity(.1),
+                    ),
+                  child: Column(
+                    children: <Widget>[
+                        Expanded(child: Container(alignment: Alignment.center, child: Text( "Success" ,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                        Expanded(child: Container(alignment: Alignment.center, child: Icon(icon, size: 52, color: Colors.green.shade300,))),
+                        Expanded(flex:2,child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text( data ,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
 
-          ],
-          ));
+                    ]
+                  ),
+                ),
+      stream: manager.message,
+      onWaiting: (context) {
+        return Container(
+            child: Column(
+              children: <Widget>[
+                    Container(
+                      margin: EdgeInsets.all(20),
+                      height: MediaQuery.of(context).size.height/3.5,
+                      width: MediaQuery.of(context).size.width / 1.3,
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.all(Radius.circular(10)),
+                          color: Colors.white70.withOpacity(.1),
+                        ),
+                      child: Column(
+                        children: <Widget>[
+                            Expanded(child: Container(alignment: Alignment.center, child: Text( status ,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                            Expanded(child: Container(alignment: Alignment.center, child: Icon(icon, size: 52, color: color,))),
+                            Expanded(flex:2,child: Container(padding: EdgeInsets.only(left: 10, right:10) ,alignment: Alignment.center, child: Text( message ,softWrap: true,style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)))),
+                        ]
+                      ),
+                    ),
+                    (result == AuthState.SUCCESS)? InkWell(
+                          onTap: ()=> manager.scanQR(),
+                          child: ButtonScanOrAuth(titre: "SCANER", color: Colors.green.shade400, border: Colors.white60,),
+                        ): Container(),
+              ],
+              ));
+      }
+    );
   }
 
   Widget _resultScan(BuildContext context, { DataManager manager, String status, String message, IconData icon, Color color}){
